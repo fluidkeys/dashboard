@@ -1,1 +1,1 @@
-web: teamserver
+web: dashboard
