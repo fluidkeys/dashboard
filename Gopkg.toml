@@ -30,8 +30,8 @@
   unused-packages = true
 
 [metadata.heroku]
-  root-package = "github.com/fluidkeys/teamserver"
-  go-version = "1.11.1"
+  root-package = "github.com/fluidkeys/dashboard"
+  go-version = "1.10.5"
 
 [[constraint]]
   name = "github.com/lib/pq"

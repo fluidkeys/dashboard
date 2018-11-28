@@ -7,62 +7,59 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/fluidkeys/teamserver/models"
-
+	"github.com/fluidkeys/dashboard/datastore"
 	_ "github.com/lib/pq"
 )
 
-const (
-	host   = "localhost"
-	port   = 5432
-	user   = "teamserver"
-	dbname = "teamserver_development"
-)
-
-var (
-	password = os.Getenv("TEAMSERVER_PASSWORD")
-)
-
-// Env provides a way to hook into the database
-type Env struct {
-	db models.Datastore
-}
-
 func main() {
-	connStr := fmt.Sprintf("host=%s port=%d user=%s "+
-		"password=%s dbname=%s sslmode=disable",
-		host, port, user, password, dbname)
-	db, err := models.NewDB(connStr)
+	databaseUrl, present := os.LookupEnv("DATABASE_URL")
+
+	if !present {
+		panic("Missing DATABASE_URL, it should be e.g. " +
+			"postgres://vagrant:password@localhost:5432/vagrant")
+	}
+
+	err := datastore.Initialize(databaseUrl)
 	if err != nil {
 		log.Panic(err)
 	}
 
-	env := &Env{db}
-
-	http.HandleFunc("/teams", env.teamsIndex)
+	http.HandleFunc("/json", handleJSONIndex)
 	err = http.ListenAndServe(Port(), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 	}
 }
 
-func (env *Env) teamsIndex(w http.ResponseWriter, r *http.Request) {
+func handleJSONIndex(w http.ResponseWriter, r *http.Request) {
 	if r.Method != "GET" {
 		http.Error(w, http.StatusText(http.StatusMethodNotAllowed), http.StatusMethodNotAllowed)
 		return
 	}
-	teams, err := env.db.AllTeams()
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	out, err := json.Marshal(teams)
+
+	var err error
+
+	responseData := jsonIndex{}
+
+	responseData.ReleaseNotesSignups, err = datastore.NumberOfReleaseNotesSignupsLast30Days()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	fmt.Fprintf(w, string(out))
+	out, err := json.MarshalIndent(responseData, "", "    ")
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("content-type", "application/json")
+	w.Write(out)
+}
+
+type jsonIndex struct {
+	ReleaseNotesSignups []datastore.DateCount `json:"releaseNotesSignups"`
 }
 
 // Port retrieves the port from the environment so we can run on Heroku

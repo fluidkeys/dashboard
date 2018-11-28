@@ -1,0 +1,5 @@
+#!/bin/sh -eux
+
+for sqlfile in $@; do
+	psql < $sqlfile;
+done

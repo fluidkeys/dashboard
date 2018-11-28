@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/fluidkeys/teamserver/models"
+	"github.com/fluidkeys/dashboard/models"
 )
 
 type mockDB struct{}
