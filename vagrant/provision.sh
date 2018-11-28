@@ -68,7 +68,7 @@ install_golang_1_10_5() {
 }
 
 install_realize_go_package() {
-    go get github.com/oxequa/realize
+    run_as_vagrant "go get github.com/oxequa/realize"
 }
 
 create_postgresql_database_and_user() {
@@ -100,6 +100,7 @@ install_required_packages
 install_postgresql_10
 install_golang_1_10_5
 create_postgresql_database_and_user
+install_realize_go_package
 migrate_database
 
 set +x
