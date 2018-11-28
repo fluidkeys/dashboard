@@ -69,14 +69,43 @@ func NumberOfReleaseNotesSignupsLast30Days() ([]DateCount, error) {
 	return dateCounts, nil
 }
 
+func NumberOfCallsArrangedNext7Days() (uint, error) {
+	query := `SELECT COUNT(arranged_for) AS count
+	          FROM calls_arranged
+		  WHERE calls_arranged.arranged_for > now()
+		  AND calls_arranged.arranged_for <= now() + interval '1 week'`
+
+	var count uint
+	err := db.QueryRow(query).Scan(&count)
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}
+
 func SetReleaseNoteSignupTimes(times []time.Time) error {
 	fmt.Printf("Adding %d release note signups times\n", len(times))
+
+	return replaceTimeRowsWith(times, "release_notes_signups", "signed_up_at")
+}
+
+func SetCallsArrangedTimes(times []time.Time) error {
+	fmt.Printf("Adding %d calls arranged times\n", len(times))
+
+	return replaceTimeRowsWith(times, "calls_arranged", "arranged_for")
+}
+
+// replaceTimeRowsWith deletes *all rows* in the given tableName then re-inserts
+// the given `times` into `columnName`
+// This is done in a transaction so a failure will rollback to the original state
+func replaceTimeRowsWith(times []time.Time, tableName string, columnName string) error {
+	fmt.Printf("tableName: '%s'\n", tableName)
 	transaction, err := db.Begin()
 	if err != nil {
 		return err
 	}
 
-	_, err = transaction.Exec("DELETE FROM release_notes_signups")
+	_, err = transaction.Exec(fmt.Sprintf("DELETE FROM %s", tableName))
 	if err != nil {
 		transaction.Rollback()
 		return err
@@ -84,7 +113,9 @@ func SetReleaseNoteSignupTimes(times []time.Time) error {
 
 	for _, timestamp := range times {
 		timestampString := timestamp.Format("2006-01-02T15:04:05")
-		_, err := transaction.Exec("INSERT INTO release_notes_signups(signed_up_at) VALUES($1)", timestampString)
+		query := fmt.Sprintf("INSERT INTO %s(%s) VALUES($1)", tableName, columnName)
+
+		_, err := transaction.Exec(query, timestampString)
 		if err != nil {
 			transaction.Rollback()
 			return err
