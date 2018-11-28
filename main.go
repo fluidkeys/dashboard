@@ -6,8 +6,15 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
+	"time"
 
 	"github.com/fluidkeys/dashboard/datastore"
+
+	"golang.org/x/net/context"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
+	"google.golang.org/api/sheets/v4"
 )
 
 func main() {
@@ -80,7 +87,109 @@ func Port() string {
 }
 
 func runCollectors() exitCode {
+
+	httpClient, err := getOauthClient()
+	if err != nil {
+		panic(err)
+	}
+
+	var errors []error
+
+	err = syncReleaseSignups(httpClient)
+	if err != nil {
+		errors = append(errors, err)
+	}
+
+	if len(errors) > 0 {
+		fmt.Print("Errors encountered:\n")
+		for _, err := range errors {
+			fmt.Print(" * " + err.Error() + "\n")
+		}
+		return 1
+	}
+
+	fmt.Print("Done.\n")
 	return 0
+}
+
+func getOauthClient() (*http.Client, error) {
+	credentialsJson, got := os.LookupEnv("GOOGLE_API_CREDENTIALS_JSON")
+
+	if !got {
+		return nil, fmt.Errorf("Missing GOOGLE_API_CREDENTIALS_JSON environment variable")
+	}
+
+	config, err := google.ConfigFromJSON(
+		[]byte(credentialsJson),
+		"https://www.googleapis.com/auth/spreadsheets.readonly",
+	)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to parse client secret file to config: %v", err)
+	}
+
+	tokenJson, got := os.LookupEnv("GOOGLE_API_TOKEN_JSON")
+
+	if !got {
+		panic(fmt.Errorf("Missing GOOGLE_API_TOKEN_JSON environment variable"))
+	}
+
+	oauthToken := &oauth2.Token{}
+	err = json.NewDecoder(strings.NewReader(tokenJson)).Decode(oauthToken)
+	if err != nil {
+		return nil, err
+	}
+
+	return config.Client(context.Background(), oauthToken), nil
+}
+
+func syncReleaseSignups(client *http.Client) error {
+	signupTimes, err := getReleaseNoteSignupTimes(client)
+	if err != nil {
+		return err
+	}
+
+	return datastore.SetReleaseNoteSignupTimes(signupTimes)
+}
+
+func getReleaseNoteSignupTimes(client *http.Client) ([]time.Time, error) {
+
+	srv, err := sheets.New(client)
+	if err != nil {
+		log.Fatalf("Unable to retrieve Sheets client: %v", err)
+	}
+
+	spreadsheetId, got := os.LookupEnv("GOOGLE_SHEETS_RELEASE_SIGNUPS_ID")
+	if !got {
+		return nil, fmt.Errorf("Missing GOOGLE_SHEETS_RELEASE_SIGNUPS_ID environment variable")
+	}
+
+	readRange := "Form responses 1!A2:B"
+	resp, err := srv.Spreadsheets.Values.Get(spreadsheetId, readRange).Do()
+	if err != nil {
+		log.Fatalf("Unable to retrieve data from sheet: %v", err)
+	}
+
+	if len(resp.Values) == 0 {
+		return nil, fmt.Errorf("No data found, length of resp.Values == 0")
+	}
+
+	var signupTimes []time.Time
+
+	for _, row := range resp.Values {
+		if timestampStr, ok := row[0].(string); !ok {
+			return nil, fmt.Errorf("non-string cell in sheet: '%v'", row[0])
+		} else {
+			timefmt := "02/01/2006 15:04:05"
+			timestamp, err := time.Parse(timefmt, timestampStr)
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse timestamp "+
+					"(expected format '%s'): %v", timefmt, err)
+			}
+			signupTimes = append(signupTimes, timestamp)
+		}
+
+	}
+	return signupTimes, nil
 }
 
 type exitCode = int
