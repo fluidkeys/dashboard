@@ -12,6 +12,28 @@ import (
 )
 
 func main() {
+
+	if len(os.Args) == 1 {
+		os.Exit(runWebserver())
+	} else if os.Args[1] == "collect" {
+		os.Exit(runCollectors())
+	} else if os.Args[1] == "--help" {
+		os.Exit(printUsage())
+	}
+}
+
+func printUsage() exitCode {
+	usage := fmt.Sprintf(`
+Usage:
+	dashboard              run the webserver
+	dashboard collect      run the data collectors
+`)
+	fmt.Print(usage)
+	return 0
+}
+
+func runWebserver() exitCode {
+
 	databaseUrl, present := os.LookupEnv("DATABASE_URL")
 
 	if !present {
@@ -28,7 +50,9 @@ func main() {
 	err = http.ListenAndServe(Port(), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
+		return 1
 	}
+	return 0
 }
 
 func handleJSONIndex(w http.ResponseWriter, r *http.Request) {
@@ -58,10 +82,6 @@ func handleJSONIndex(w http.ResponseWriter, r *http.Request) {
 	w.Write(out)
 }
 
-type jsonIndex struct {
-	ReleaseNotesSignups []datastore.DateCount `json:"releaseNotesSignups"`
-}
-
 // Port retrieves the port from the environment so we can run on Heroku
 func Port() string {
 	var port = os.Getenv("PORT")
@@ -71,4 +91,14 @@ func Port() string {
 		fmt.Println("INFO: No PORT environment variable detected, defaulting to " + port)
 	}
 	return ":" + port
+}
+
+func runCollectors() exitCode {
+	return 0
+}
+
+type exitCode = int
+
+type jsonIndex struct {
+	ReleaseNotesSignups []datastore.DateCount `json:"releaseNotesSignups"`
 }

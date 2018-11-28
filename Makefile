@@ -2,6 +2,10 @@
 run:
 	firejail --seccomp.enotsup=sendfile realize start
 
+.PHONY: run_collectors
+run_collectors:
+	go run main.go collect
+
 .PHONY: migrate
 migrate:
 	./migrations/migrate migrations/*.sql
