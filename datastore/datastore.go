@@ -3,10 +3,27 @@ package datastore
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 var db *sql.DB
+
+func init() {
+	databaseUrl, present := os.LookupEnv("DATABASE_URL")
+
+	if !present {
+		panic("Missing DATABASE_URL, it should be e.g. " +
+			"postgres://vagrant:password@localhost:5432/vagrant")
+	}
+
+	err := Initialize(databaseUrl)
+	if err != nil {
+		panic(err)
+	}
+}
 
 // Initialize initialises a postgres database from the given databaseUrl
 func Initialize(databaseUrl string) error {
@@ -50,6 +67,31 @@ func NumberOfReleaseNotesSignupsLast30Days() ([]DateCount, error) {
 	}
 
 	return dateCounts, nil
+}
+
+func SetReleaseNoteSignupTimes(times []time.Time) error {
+	fmt.Printf("Adding %d release note signups times\n", len(times))
+	transaction, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = transaction.Exec("DELETE FROM release_notes_signups")
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
+	for _, timestamp := range times {
+		timestampString := timestamp.Format("2006-01-02T15:04:05")
+		_, err := transaction.Exec("INSERT INTO release_notes_signups(signed_up_at) VALUES($1)", timestampString)
+		if err != nil {
+			transaction.Rollback()
+			return err
+		}
+	}
+
+	return transaction.Commit()
 }
 
 type JSONDate time.Time
