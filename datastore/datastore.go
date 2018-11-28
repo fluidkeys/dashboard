@@ -69,6 +69,31 @@ func NumberOfReleaseNotesSignupsLast30Days() ([]DateCount, error) {
 	return dateCounts, nil
 }
 
+func SetReleaseNoteSignupTimes(times []time.Time) error {
+	fmt.Printf("Adding %d release note signups times\n", len(times))
+	transaction, err := db.Begin()
+	if err != nil {
+		return err
+	}
+
+	_, err = transaction.Exec("DELETE FROM release_notes_signups")
+	if err != nil {
+		transaction.Rollback()
+		return err
+	}
+
+	for _, timestamp := range times {
+		timestampString := timestamp.Format("2006-01-02T15:04:05")
+		_, err := transaction.Exec("INSERT INTO release_notes_signups(signed_up_at) VALUES($1)", timestampString)
+		if err != nil {
+			transaction.Rollback()
+			return err
+		}
+	}
+
+	return transaction.Commit()
+}
+
 type JSONDate time.Time
 
 func (t JSONDate) MarshalJSON() ([]byte, error) {
