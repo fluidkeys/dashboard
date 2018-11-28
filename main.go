@@ -8,7 +8,6 @@ import (
 	"os"
 
 	"github.com/fluidkeys/dashboard/datastore"
-	_ "github.com/lib/pq"
 )
 
 func main() {
@@ -33,21 +32,8 @@ Usage:
 }
 
 func runWebserver() exitCode {
-
-	databaseUrl, present := os.LookupEnv("DATABASE_URL")
-
-	if !present {
-		panic("Missing DATABASE_URL, it should be e.g. " +
-			"postgres://vagrant:password@localhost:5432/vagrant")
-	}
-
-	err := datastore.Initialize(databaseUrl)
-	if err != nil {
-		log.Panic(err)
-	}
-
 	http.HandleFunc("/json", handleJSONIndex)
-	err = http.ListenAndServe(Port(), nil)
+	err := http.ListenAndServe(Port(), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
 		return 1

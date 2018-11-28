@@ -3,10 +3,27 @@ package datastore
 import (
 	"database/sql"
 	"fmt"
+	"os"
 	"time"
+
+	_ "github.com/lib/pq"
 )
 
 var db *sql.DB
+
+func init() {
+	databaseUrl, present := os.LookupEnv("DATABASE_URL")
+
+	if !present {
+		panic("Missing DATABASE_URL, it should be e.g. " +
+			"postgres://vagrant:password@localhost:5432/vagrant")
+	}
+
+	err := Initialize(databaseUrl)
+	if err != nil {
+		panic(err)
+	}
+}
 
 // Initialize initialises a postgres database from the given databaseUrl
 func Initialize(databaseUrl string) error {
