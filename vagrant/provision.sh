@@ -67,6 +67,10 @@ install_golang_1_10_5() {
     ln -sf /vagrant/vagrant/etc/profile.d/golang.sh /etc/profile.d/golang.sh
 }
 
+install_realize_go_package() {
+    go get github.com/oxequa/realize
+}
+
 create_postgresql_database_and_user() {
     # We make a user and a database both called vagrant, then the vagrant
     # username will automatically access that database.
