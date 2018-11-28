@@ -1,6 +1,6 @@
 .PHONY: run
 run:
-	go run main.go
+	firejail --seccomp.enotsup=sendfile go run main.go
 
 .PHONY: migrate
 migrate:

@@ -13,6 +13,7 @@ install_required_packages() {
     sudo apt-get install -y \
 	ack-grep \
         dos2unix \
+	firejail \
 	git \
 	htop \
 	make \
