@@ -17,3 +17,8 @@ migrate_heroku:
 .PHONY: test
 test:
 	go build main.go
+
+.PHONY: jenkins_deploy_to_heroku
+jenkins_deploy_to_heroku:
+	heroku git:remote --app fluidkeys-dashboard
+	git push heroku HEAD:master
