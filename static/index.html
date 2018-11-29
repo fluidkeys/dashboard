@@ -23,6 +23,10 @@
           datasets: [{
             backgroundColor: 'rgb(255, 99, 132)',
             data: [],
+          },
+          {
+            backgroundColor: 'rgb(0, 177, 228)',
+            data: [],
           }]
         },
         options: {
@@ -63,6 +67,17 @@
                 }
               });
 
+              metrics["trialsStarted"].forEach(function(trialstarted) {
+                responseSignUpChart.data.labels.push(new Date(trialstarted.date).formatDDMM());
+                responseSignUpChart.data.datasets[1].data.push(parseFloat(trialstarted.count));
+                if (trialstarted.count > mostSignUpsInADay) {
+                  mostSignUpsInADay = trialstarted.count;
+                }
+                if (trialstarted.count < mostUnSubscribesInADay) {
+                  mostUnSubscribesInADay = trialstarted.count;
+                }
+              });
+
               yAxesMax = Math.ceil(mostSignUpsInADay / 10) * 10;
               yAxesMin = Math.ceil(mostUnSubscribesInADay / 10) * 10;
 
@@ -71,13 +86,60 @@
               responseSignUpChart.update();
 
               if (metrics["callsArrangedNext7Days"] !== undefined) {
-                callsArrangeCount = document.querySelector('#calls-arranged-next-week .count');
-                callsArrangeCount.innerHTML = metrics["callsArrangedNext7Days"];
+                callsArranged = metrics["callsArrangedNext7Days"];
+                callsArrangeCounter = document.querySelector('#calls-arranged-next-week .count');
+                callsArrangeCounter.innerHTML = callsArranged;
+                switch (true) {
+                  case (callsArranged < 3):
+                    callsArrangeCounter.parentElement.classList.add("red");
+                    break;
+                  case (callsArranged < 4):
+                    callsArrangeCounter.parentElement.classList.add("amber");
+                    break;
+                  case (callsArranged >= 4):
+                    callsArrangeCounter.parentElement.classList.add("green");
+                    break;
+                  default:
+                    break;
+                }
               }
 
               if (metrics["daysSinceLastRelease"] !== undefined) {
-                daysSinceReleaseCount = document.querySelector('#days-since-last-release .count');
-                daysSinceReleaseCount.innerHTML = metrics["daysSinceLastRelease"];
+                daysSinceRelease = metrics["daysSinceLastRelease"];
+                daysSinceReleaseCounter = document.querySelector('#days-since-last-release .count');
+                daysSinceReleaseCounter.innerHTML = daysSinceRelease;
+                switch (true) {
+                  case (daysSinceRelease > 30):
+                    daysSinceReleaseCounter.parentElement.classList.add("red");
+                    break;
+                  case (daysSinceRelease > 20):
+                    daysSinceReleaseCounter.parentElement.classList.add("amber");
+                    break;
+                  case (daysSinceRelease >= 0):
+                    daysSinceReleaseCounter.parentElement.classList.add("green");
+                    break;
+                  default:
+                    break;
+                }
+              }
+
+              if (metrics["monthlyRecurringRevenueGBP"] !== undefined) {
+                monthlyRecurringRevenue = metrics["monthlyRecurringRevenueGBP"]
+                monthlyRecurringRevenueCounter = document.querySelector('#monthly-recurring-revenue .count');
+                monthlyRecurringRevenueCounter.innerHTML = "£" + monthlyRecurringRevenue;
+                switch (true) {
+                  case (monthlyRecurringRevenue < 1000):
+                    monthlyRecurringRevenueCounter.parentElement.classList.add("red");
+                    break;
+                  case (monthlyRecurringRevenue < 2000):
+                    monthlyRecurringRevenueCounter.parentElement.classList.add("amber");
+                    break;
+                  case (monthlyRecurringRevenue < 4000):
+                    monthlyRecurringRevenueCounter.parentElement.classList.add("green");
+                    break;
+                  default:
+                    break;
+                }
               }
             }
             else {
@@ -96,7 +158,11 @@
 <body>
   <div id="dashboard">
     <div id="graph-container">
-      <h2>Release note signups</h2>
+      <h2>
+        <span class="release-legend">Release note signups</span>
+        /
+        <span class="trials-legend">Trials started</span>
+      </h2>
       <div id="graph">
         <canvas id="responseSignUps"></canvas>
       </div>
@@ -109,6 +175,10 @@
       <div id="days-since-last-release" class="big-number">
         <span class="count">!</span>
         <span class="label">days since<br />last release</span>
+      </div>
+      <div id="monthly-recurring-revenue" class="big-number">
+        <span class="count">!</span>
+        <span class="label">monthly recurring<br />revenue</span>
       </div>
     </div>
   </div>
