@@ -1,0 +1,90 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Fluidkeys Dashboard</title>
+  <script src="/javascript/Chart.min.js"></script>
+  <link rel="stylesheet" href="/stylesheets/main.css">
+  <script>
+    // A helper to format timestamp data
+    Date.prototype.formatDDMM = function() {
+      return this.getDate() +
+      "/" + (this.getMonth() + 1)
+    }
+
+    document.addEventListener("DOMContentLoaded", function(){
+      // create initial empty chart
+      var responseSignUpCanvas = document.getElementById("responseSignUps");
+      var responseSignUpChart = new Chart(responseSignUpCanvas, {
+        type: 'bar',
+        data: {
+          labels: [],
+          datasets: [{
+            backgroundColor: 'rgb(255, 99, 132)',
+            data: [],
+          }]
+        },
+        options: {
+          animation: false,
+          maintainAspectRatio: false,
+          legend: {
+            display: false,
+          },
+          scales: {
+            yAxes: [{
+              ticks: {
+                min: 0,
+                max: 10,
+                stepSize: 1
+              }
+            }]
+          }
+        }
+      });
+
+      getResponseSignUpData = function() {
+        var request = new XMLHttpRequest();
+        request.open('GET', '/json', true);
+        request.onload = function() {
+            if (request.status === 200) {
+              var results = JSON.parse(request.responseText);
+
+              var mostSignUpsInADay = 0;
+              var mostUnSubscribesInADay = 0;
+              results["releaseNotesSignups"].forEach(function(releaseNotesSignup) {
+                responseSignUpChart.data.labels.push(new Date(releaseNotesSignup.date).formatDDMM());
+                responseSignUpChart.data.datasets[0].data.push(parseFloat(releaseNotesSignup.count));
+                if (releaseNotesSignup.count > mostSignUpsInADay) {
+                  mostSignUpsInADay = releaseNotesSignup.count;
+                }
+                if (releaseNotesSignup.count < mostUnSubscribesInADay) {
+                  mostUnSubscribesInADay = releaseNotesSignup.count;
+                }
+              });
+
+              yAxesMax = Math.ceil(mostSignUpsInADay / 10) * 10;
+              yAxesMin = Math.ceil(mostUnSubscribesInADay / 10) * 10;
+
+              responseSignUpChart.options.scales.yAxes[0].ticks.max = yAxesMax;
+              responseSignUpChart.options.scales.yAxes[0].ticks.min = yAxesMin;
+              responseSignUpChart.update();
+            }
+            else {
+                alert('Request failed.  Returned status of ' + xhr.status);
+            }
+        };
+        request.send();
+      };
+
+      
+      
+      getResponseSignUpData();
+    });
+  </script>
+</head>
+<body>
+  <h1>Fluidkeys Dashboard</h1>
+  <h2>Release note signups</h2>
+  <canvas id="responseSignUps" width="800" height="200" style="min-height: 200;"></canvas>
+</body>
+</html>
