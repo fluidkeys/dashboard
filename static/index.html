@@ -88,8 +88,8 @@
               responseSignUpChart.options.scales.yAxes[0].ticks.min = yAxesMin;
               responseSignUpChart.update();
 
-              if (metrics["callsArrangedNext7Days"] !== undefined) {
-                callsArranged = metrics["callsArrangedNext7Days"];
+              if (metrics["callsArrangedNextWeek"] !== undefined) {
+                callsArranged = metrics["callsArrangedNextWeek"];
                 callsArrangeCounter = document.querySelector('#calls-arranged-next-week .count');
                 callsArrangeCounter.innerHTML = callsArranged;
                 switch (true) {
