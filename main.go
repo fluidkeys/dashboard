@@ -14,6 +14,7 @@ import (
 	"golang.org/x/net/context"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
+	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/sheets/v4"
 )
 
@@ -65,6 +66,12 @@ func handleJSONIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	responseData.CallsArrangedNext7Days, err = datastore.NumberOfCallsArrangedNext7Days()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	out, err := json.MarshalIndent(responseData, "", "    ")
 
 	if err != nil {
@@ -97,6 +104,11 @@ func runCollectors() exitCode {
 	var errors []error
 
 	err = syncReleaseSignups(httpClient)
+	if err != nil {
+		errors = append(errors, err)
+	}
+
+	err = syncCallsArrangedFromCalendar(httpClient)
 	if err != nil {
 		errors = append(errors, err)
 	}
@@ -152,6 +164,16 @@ func syncReleaseSignups(client *http.Client) error {
 	return datastore.SetReleaseNoteSignupTimes(signupTimes)
 }
 
+func syncCallsArrangedFromCalendar(client *http.Client) error {
+	callsArrangedTimes, err := getCallsArrangedFromCalendar(client)
+
+	if err != nil {
+		return err
+	}
+
+	return datastore.SetCallsArrangedTimes(callsArrangedTimes)
+}
+
 func getReleaseNoteSignupTimes(client *http.Client) ([]time.Time, error) {
 
 	srv, err := sheets.New(client)
@@ -193,8 +215,79 @@ func getReleaseNoteSignupTimes(client *http.Client) ([]time.Time, error) {
 	return signupTimes, nil
 }
 
+func getCallsArrangedFromCalendar(client *http.Client) ([]time.Time, error) {
+	srv, err := calendar.New(client)
+	if err != nil {
+		log.Fatalf("Unable to retrieve Calendar client: %v", err)
+	}
+
+	calendarIds := []string{
+		"paul@fluidkeys.com",
+		"ian@fluidkeys.com",
+	}
+
+	eventIdTimeMap := make(map[string]time.Time)
+
+	t := time.Now().Format(time.RFC3339)
+
+	for _, calendarId := range calendarIds {
+		events, err := srv.Events.List(calendarId).ShowDeleted(false).
+			SingleEvents(true).TimeMin(t).MaxResults(50).OrderBy("startTime").Do()
+
+		if err != nil {
+			return nil, fmt.Errorf("failed to get upcoming events for %s: %v", calendarId, err)
+		}
+
+		if len(events.Items) == 0 {
+			return nil, fmt.Errorf("no upcoming events for %s, seems unlikely", calendarId)
+
+		}
+
+		fmt.Print(calendarId + ":\n")
+		for _, event := range events.Items {
+			// https://developers.google.com/calendar/v3/reference/events
+
+			if eventLooksLikeCall(event) {
+				fmt.Printf("possible call: '%s'\n", event.Summary)
+				arrangedFor, err := time.Parse("2006-01-02T15:04:05Z07:00", event.Start.DateTime)
+				if err != nil {
+					panic(fmt.Errorf("failed to parse event.Start.Datetime '%s': %v", event.Start.DateTime, err))
+				}
+				eventIdTimeMap[event.Id] = arrangedFor
+			}
+		}
+	}
+
+	fmt.Printf("%v\n", eventIdTimeMap)
+
+	arrangedForTimes := []time.Time{}
+
+	for _, time := range eventIdTimeMap {
+		arrangedForTimes = append(arrangedForTimes, time)
+	}
+
+	return arrangedForTimes, nil
+}
+
+func eventLooksLikeCall(calendarEvent *calendar.Event) bool {
+	titleLooksGood := false
+
+	if strings.Contains(calendarEvent.Summary, " <> ") {
+		titleLooksGood = true
+	} else if strings.Contains(calendarEvent.Summary, " / Ian") {
+		titleLooksGood = true
+	} else if strings.Contains(calendarEvent.Summary, " / Paul") {
+		titleLooksGood = true
+	}
+
+	hasSpecificTime := calendarEvent.Start.DateTime != ""
+
+	return titleLooksGood && hasSpecificTime
+}
+
 type exitCode = int
 
 type jsonIndex struct {
-	ReleaseNotesSignups []datastore.DateCount `json:"releaseNotesSignups"`
+	ReleaseNotesSignups    []datastore.DateCount `json:"releaseNotesSignups"`
+	CallsArrangedNext7Days uint                  `json:"callsArrangedNext7Days"`
 }

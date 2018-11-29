@@ -55,9 +55,10 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:37c8ee7106e4023663491ca095f4809a1a4597ad72ca47e1af22a581b4fcd513"
+  digest = "1:d1412e5784fa21bfd7a6e91d87409fc8df3d1215a743670be63c1a8b2b2be586"
   name = "google.golang.org/api"
   packages = [
+    "calendar/v3",
     "gensupport",
     "googleapi",
     "googleapi/internal/uritemplates",
@@ -93,6 +94,7 @@
     "golang.org/x/net/context",
     "golang.org/x/oauth2",
     "golang.org/x/oauth2/google",
+    "google.golang.org/api/calendar/v3",
     "google.golang.org/api/sheets/v4",
   ]
   solver-name = "gps-cdcl"
