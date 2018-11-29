@@ -93,6 +93,20 @@ func NumberOfCallsArrangedNext7Days() (uint, error) {
 	return count, nil
 }
 
+func DaysSinceLastReleaseAnnouncement() (uint, error) {
+	query := `SELECT date_part('day', NOW() - published_at) AS days_ago
+	          FROM release_announcements
+		  ORDER BY published_at DESC
+		  LIMIT 1;`
+
+	var daysAgo uint
+	err := db.QueryRow(query).Scan(&daysAgo)
+	if err != nil {
+		return 0, err
+	}
+	return daysAgo, nil
+}
+
 func SetReleaseNoteSignupTimes(times []time.Time) error {
 	fmt.Printf("Adding %d release note signups times\n", len(times))
 
@@ -103,6 +117,12 @@ func SetCallsArrangedTimes(times []time.Time) error {
 	fmt.Printf("Adding %d calls arranged times\n", len(times))
 
 	return replaceTimeRowsWith(times, "calls_arranged", "arranged_for")
+}
+
+func SetReleaseAnnouncementTimes(times []time.Time) error {
+	fmt.Printf("Adding %d release announcement times\n", len(times))
+
+	return replaceTimeRowsWith(times, "release_announcements", "published_at")
 }
 
 // replaceTimeRowsWith deletes *all rows* in the given tableName then re-inserts

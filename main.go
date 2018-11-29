@@ -16,6 +16,8 @@ import (
 	"golang.org/x/oauth2/google"
 	"google.golang.org/api/calendar/v3"
 	"google.golang.org/api/sheets/v4"
+
+	"github.com/mmcdole/gofeed"
 )
 
 func main() {
@@ -72,6 +74,12 @@ func handleJSONIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	responseData.DaysSinceLastRelease, err = datastore.DaysSinceLastReleaseAnnouncement()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	responseData.CallsArrangedNext7Days, err = datastore.NumberOfCallsArrangedNext7Days()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -108,6 +116,11 @@ func runCollectors() exitCode {
 	}
 
 	var errors []error
+
+	err = syncReleaseAnnouncements(httpClient)
+	if err != nil {
+		errors = append(errors, err)
+	}
 
 	err = syncReleaseSignups(httpClient)
 	if err != nil {
@@ -159,6 +172,42 @@ func getOauthClient() (*http.Client, error) {
 	}
 
 	return config.Client(context.Background(), oauthToken), nil
+}
+
+func syncReleaseAnnouncements(client *http.Client) error {
+	releaseAnnouncementTimes, err := getReleaseAnnouncementTimes(client)
+	if err != nil {
+		return err
+	}
+
+	return datastore.SetReleaseAnnouncementTimes(releaseAnnouncementTimes)
+}
+
+func getReleaseAnnouncementTimes(client *http.Client) ([]time.Time, error) {
+	fp := gofeed.NewParser()
+	feed, err := fp.ParseURL("https://www.fluidkeys.com/blog/feed.xml")
+	if err != nil {
+		return nil, err
+	}
+
+	announcementTimes := []time.Time{}
+	for _, item := range feed.Items {
+		if strings.Contains(item.Link, `/blog/release`) {
+			timestamp, err := time.Parse("2006-01-02T15:04:05Z07:00", item.Published)
+
+			if err != nil {
+				return nil, fmt.Errorf("failed to parse date for '%s': %v", item.Title, err)
+			}
+			fmt.Printf("Release announcement: '%s' — %s — %s\n", item.Title, item.Link, timestamp)
+			announcementTimes = append(announcementTimes, timestamp)
+		}
+	}
+
+	if len(announcementTimes) == 0 {
+		return nil, fmt.Errorf("got 0 release announcements, can't be right")
+	}
+
+	return announcementTimes, nil
 }
 
 func syncReleaseSignups(client *http.Client) error {
