@@ -40,6 +40,7 @@ Usage:
 
 func runWebserver() exitCode {
 	http.HandleFunc("/json", handleJSONIndex)
+	http.Handle("/", http.FileServer(http.Dir("./static")))
 	err := http.ListenAndServe(Port(), nil)
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
