@@ -79,11 +79,13 @@ func getRowCountLast30Days(tableName string, columnName string) ([]DateCount, er
 	return dateCounts, nil
 }
 
-func NumberOfCallsArrangedNext7Days() (uint, error) {
+func NumberOfCallsArrangedNextWeek() (uint, error) {
+	// Count the number of calls scheduled between the following Monday at 00:00
+	// and the following Monday.
 	query := `SELECT COUNT(arranged_for) AS count
 	          FROM calls_arranged
-		  WHERE calls_arranged.arranged_for > now()
-		  AND calls_arranged.arranged_for <= now() + interval '1 week'`
+		  WHERE calls_arranged.arranged_for >= date_trunc('week', now())+ INTERVAL '7days'
+		  AND calls_arranged.arranged_for <= date_trunc('week', now())+ INTERVAL '7days' + interval '1 week'`
 
 	var count uint
 	err := db.QueryRow(query).Scan(&count)
