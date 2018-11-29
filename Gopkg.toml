@@ -36,3 +36,7 @@
 [[constraint]]
   name = "github.com/lib/pq"
   version = "1.0.0"
+
+[[constraint]]
+  name = "github.com/mmcdole/gofeed"
+  version = "1.0.0-beta2"
