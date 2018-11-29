@@ -129,7 +129,6 @@ func SetReleaseAnnouncementTimes(times []time.Time) error {
 // the given `times` into `columnName`
 // This is done in a transaction so a failure will rollback to the original state
 func replaceTimeRowsWith(times []time.Time, tableName string, columnName string) error {
-	fmt.Printf("tableName: '%s'\n", tableName)
 	transaction, err := db.Begin()
 	if err != nil {
 		return err
