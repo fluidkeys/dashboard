@@ -42,16 +42,16 @@
         }
       });
 
-      getResponseSignUpData = function() {
+      getMetrics = function() {
         var request = new XMLHttpRequest();
         request.open('GET', '/json', true);
         request.onload = function() {
             if (request.status === 200) {
-              var results = JSON.parse(request.responseText);
+              var metrics = JSON.parse(request.responseText);
 
               var mostSignUpsInADay = 0;
               var mostUnSubscribesInADay = 0;
-              results["releaseNotesSignups"].forEach(function(releaseNotesSignup) {
+              metrics["releaseNotesSignups"].forEach(function(releaseNotesSignup) {
                 responseSignUpChart.data.labels.push(new Date(releaseNotesSignup.date).formatDDMM());
                 responseSignUpChart.data.datasets[0].data.push(parseFloat(releaseNotesSignup.count));
                 if (releaseNotesSignup.count > mostSignUpsInADay) {
@@ -68,6 +68,16 @@
               responseSignUpChart.options.scales.yAxes[0].ticks.max = yAxesMax;
               responseSignUpChart.options.scales.yAxes[0].ticks.min = yAxesMin;
               responseSignUpChart.update();
+
+              if (metrics["callsArrangedNext7Days"] !== undefined) {
+                callsArrangeCount = document.querySelector('#calls-arranged-next-week .count');
+                callsArrangeCount.innerHTML = metrics["callsArrangedNext7Days"];
+              }
+
+              if (metrics["daysSinceLastRelease"] !== undefined) {
+                daysSinceReleaseCount = document.querySelector('#days-since-last-release .count');
+                daysSinceReleaseCount.innerHTML = metrics["daysSinceLastRelease"];
+              }
             }
             else {
                 alert('Request failed.  Returned status of ' + xhr.status);
@@ -78,13 +88,28 @@
 
       
       
-      getResponseSignUpData();
+      getMetrics();
     });
   </script>
 </head>
 <body>
-  <h1>Fluidkeys Dashboard</h1>
-  <h2>Release note signups</h2>
-  <canvas id="responseSignUps" width="800" height="200" style="min-height: 200;"></canvas>
+  <div id="dashboard">
+    <div id="graph-container">
+      <h2>Release note signups</h2>
+      <div id="graph">
+        <canvas id="responseSignUps"></canvas>
+      </div>
+    </div>
+    <div id="big-numbers">
+      <div id="calls-arranged-next-week" class="big-number">
+        <span class="count">!</span>
+        <span class="label">calls arranaged<br />next week</span>
+      </div>
+      <div id="days-since-last-release" class="big-number">
+        <span class="count">!</span>
+        <span class="label">days since<br />last release</span>
+      </div>
+    </div>
+  </div>
 </body>
 </html>
