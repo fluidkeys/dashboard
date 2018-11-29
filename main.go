@@ -298,12 +298,11 @@ func getCallsArrangedFromCalendar(client *http.Client) ([]time.Time, error) {
 
 		}
 
-		fmt.Print(calendarId + ":\n")
 		for _, event := range events.Items {
 			// https://developers.google.com/calendar/v3/reference/events
 
 			if eventLooksLikeCall(event) {
-				fmt.Printf("possible call: '%s'\n", event.Summary)
+				fmt.Printf("calendar event looks like a call: '%s' %s\n", event.Summary, event.Start.DateTime)
 				arrangedFor, err := time.Parse("2006-01-02T15:04:05Z07:00", event.Start.DateTime)
 				if err != nil {
 					panic(fmt.Errorf("failed to parse event.Start.Datetime '%s': %v", event.Start.DateTime, err))
@@ -312,8 +311,6 @@ func getCallsArrangedFromCalendar(client *http.Client) ([]time.Time, error) {
 			}
 		}
 	}
-
-	fmt.Printf("%v\n", eventIdTimeMap)
 
 	arrangedForTimes := []time.Time{}
 
