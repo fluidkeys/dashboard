@@ -72,7 +72,6 @@
               });
 
               metrics["trialsStarted"].forEach(function(trialstarted) {
-                responseSignUpChart.data.labels.push(new Date(trialstarted.date).formatDDMM());
                 responseSignUpChart.data.datasets[1].data.push(parseFloat(trialstarted.count));
                 if (trialstarted.count > mostSignUpsInADay) {
                   mostSignUpsInADay = trialstarted.count;
