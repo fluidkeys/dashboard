@@ -66,6 +66,12 @@ func handleJSONIndex(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	responseData.TrialsStarted, err = datastore.NumberOfTrialsStartedLast30Days()
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
 	responseData.CallsArrangedNext7Days, err = datastore.NumberOfCallsArrangedNext7Days()
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -288,6 +294,9 @@ func eventLooksLikeCall(calendarEvent *calendar.Event) bool {
 type exitCode = int
 
 type jsonIndex struct {
-	ReleaseNotesSignups    []datastore.DateCount `json:"releaseNotesSignups"`
-	CallsArrangedNext7Days uint                  `json:"callsArrangedNext7Days"`
+	CallsArrangedNext7Days     uint                  `json:"callsArrangedNext7Days"`
+	DaysSinceLastRelease       uint                  `json:"daysSinceLastRelease"`
+	MonthlyRecurringRevenueGBP uint                  `json:"monthlyRecurringRevenueGBP"`
+	ReleaseNotesSignups        []datastore.DateCount `json:"releaseNotesSignups"`
+	TrialsStarted              []datastore.DateCount `json:"trialsStarted"`
 }

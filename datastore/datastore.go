@@ -41,13 +41,23 @@ func Initialize(databaseUrl string) error {
 // NumberOfReleaseNotesSignupsLastNDays returns the number of signups to our
 // release notes announcements list in the last 30 days
 func NumberOfReleaseNotesSignupsLast30Days() ([]DateCount, error) {
+	return getRowCountLast30Days("release_notes_signups", "signed_up_at")
+}
 
-	query := `SELECT (CURRENT_DATE - i) AS date,
-	          COUNT(release_notes_signups.signed_up_at) AS count
+// NumberOfTrialsStartedLast30Days returns 30 entries (oldest to newest) of
+// the number of team trials started on each date
+func NumberOfTrialsStartedLast30Days() ([]DateCount, error) {
+	return getRowCountLast30Days("trials_started", "started_at")
+}
+
+func getRowCountLast30Days(tableName string, columnName string) ([]DateCount, error) {
+
+	query := fmt.Sprintf(`SELECT (CURRENT_DATE - i) AS date,
+	          COUNT(%s.%s) AS count
 	          FROM generate_series(0, 29) i
-	          LEFT JOIN release_notes_signups ON date(release_notes_signups.signed_up_at) = CURRENT_DATE - i
+	          LEFT JOIN %s ON date(%s.%s) = CURRENT_DATE - i
 	          GROUP BY date
-	          ORDER BY date ASC;`
+	          ORDER BY date ASC;`, tableName, columnName, tableName, tableName, columnName)
 
 	rows, err := db.Query(query)
 	if err != nil {
