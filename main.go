@@ -122,7 +122,7 @@ func runCollectors() exitCode {
 		errors = append(errors, err)
 	}
 
-	err = syncReleaseSignups(httpClient)
+	err := syncReleaseSignups()
 	if err != nil {
 		errors = append(errors, err)
 	}
@@ -210,8 +210,8 @@ func getReleaseAnnouncementTimes(client *http.Client) ([]time.Time, error) {
 	return announcementTimes, nil
 }
 
-func syncReleaseSignups(client *http.Client) error {
-	signupTimes, err := getReleaseNoteSignupTimes(client)
+func syncReleaseSignups() error {
+	signupTimes, err := getReleaseNotesSignupTimesFromMailChimp()
 	if err != nil {
 		return err
 	}
@@ -267,6 +267,52 @@ func getReleaseNoteSignupTimes(client *http.Client) ([]time.Time, error) {
 		}
 
 	}
+	return signupTimes, nil
+}
+
+func getReleaseNotesSignupTimesFromMailChimp() ([]time.Time, error) {
+	mailchimpAPIToken, got := os.LookupEnv("MAILCHIMP_API_TOKEN")
+	if !got {
+		return nil, fmt.Errorf("Missing MAILCHIMP_API_TOKEN environment variable")
+	}
+
+	mailchimpListID, got := os.LookupEnv("MAILCHIMP_RELEASE_NOTES_LIST_ID")
+	if !got {
+		return nil, fmt.Errorf("Missing MAILCHIMP_RELEASE_NOTES_LIST_ID environment variable")
+	}
+
+	client := &http.Client{}
+	url := fmt.Sprintf("https://us20.api.mailchimp.com/3.0/lists/%s/members", mailchimpListID)
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		log.Fatalln(err)
+		return nil, err
+	}
+	req.SetBasicAuth("", mailchimpAPIToken)
+	resp, err := client.Do(req)
+	if err != nil {
+		log.Fatalln(err)
+		return nil, err
+	}
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		log.Fatalln(err)
+		return nil, err
+	}
+
+	var signupTimes []time.Time
+
+	var mailchimpList mailchimpList
+	err = json.Unmarshal(body, &mailchimpList)
+	if err != nil {
+		log.Fatalln(err)
+		return nil, err
+	}
+
+	for _, member := range mailchimpList.Members {
+		signupTimes = append(signupTimes, member.Timestamp)
+	}
+
 	return signupTimes, nil
 }
 
@@ -345,4 +391,15 @@ type jsonIndex struct {
 	MonthlyRecurringRevenueGBP uint                  `json:"monthlyRecurringRevenueGBP"`
 	ReleaseNotesSignups        []datastore.DateCount `json:"releaseNotesSignups"`
 	TrialsStarted              []datastore.DateCount `json:"trialsStarted"`
+}
+
+// mailchimpList represents a mailing list in Mailchimp
+type mailchimpList struct {
+	Members []mailchimpMember `json:"members"`
+}
+
+// mailchimpMember represents a member of a list in Mailchimp, we're solely concerned with when
+// they opted in for our dashboard.
+type mailchimpMember struct {
+	Timestamp time.Time `json:"timestamp_opt"`
 }
