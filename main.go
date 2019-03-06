@@ -241,7 +241,7 @@ func getReleaseNoteSignupTimes(client *http.Client) ([]time.Time, error) {
 		return nil, fmt.Errorf("Missing GOOGLE_SHEETS_RELEASE_SIGNUPS_ID environment variable")
 	}
 
-	readRange := "Form responses 1!A2:B"
+	readRange := "Recent signups!A2:B"
 	resp, err := srv.Spreadsheets.Values.Get(spreadsheetId, readRange).Do()
 	if err != nil {
 		log.Fatalf("Unable to retrieve data from sheet: %v", err)
