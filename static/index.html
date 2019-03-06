@@ -88,9 +88,9 @@
               responseSignUpChart.options.scales.yAxes[0].ticks.min = yAxesMin;
               responseSignUpChart.update();
 
-              if (metrics["callsArrangedNextWeek"] !== undefined) {
-                callsArranged = metrics["callsArrangedNextWeek"];
-                callsArrangeCounter = document.querySelector('#calls-arranged-next-week .count');
+              if (metrics["callsArrangedNext7Days"] !== undefined) {
+                callsArranged = metrics["callsArrangedNext7Days"];
+                callsArrangeCounter = document.querySelector('#calls-arranged-next-seven-days .count');
                 callsArrangeCounter.innerHTML = callsArranged;
                 switch (true) {
                   case (callsArranged < 3):
@@ -177,9 +177,9 @@
       </div>
     </div>
     <div id="big-numbers">
-      <div id="calls-arranged-next-week" class="big-number">
+      <div id="calls-arranged-next-seven-days" class="big-number">
         <span class="count">!</span>
-        <span class="label">calls arranged<br />next week</span>
+        <span class="label">calls arranged<br />in next 7 days</span>
       </div>
       <div id="days-until-next-release-due" class="big-number">
         <span class="count">!</span>
