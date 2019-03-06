@@ -109,17 +109,24 @@
 
               if (metrics["daysSinceLastRelease"] !== undefined) {
                 daysSinceRelease = metrics["daysSinceLastRelease"];
-                daysSinceReleaseCounter = document.querySelector('#days-since-last-release .count');
-                daysSinceReleaseCounter.innerHTML = daysSinceRelease;
+                daysUntilNextReleaseDue = 42 - daysSinceRelease; // Our target is to release every 6 weeks
+                daysUntilNextReleaseDueCounter = document.querySelector('#days-until-next-release-due .count');
+
                 switch (true) {
-                  case (daysSinceRelease > 30):
-                    daysSinceReleaseCounter.parentElement.classList.add("red");
+                  case (daysUntilNextReleaseDue < -7):
+                    daysUntilNextReleaseDueCounter.parentElement.classList.add("red");
+                    daysUntilNextReleaseDueCounter.innerHTML = daysUntilNextReleaseDue * -1; // flip the number to count days overdue
+                    document.querySelector('#days-until-next-release-due .label').innerHTML = "days overdue<br />to release";
                     break;
-                  case (daysSinceRelease > 20):
-                    daysSinceReleaseCounter.parentElement.classList.add("amber");
+                  case (daysUntilNextReleaseDue < 0):
+                    daysUntilNextReleaseDueCounter.parentElement.classList.add("amber");
+                    daysUntilNextReleaseDueCounter.innerHTML = daysUntilNextReleaseDue * -1; // flip the number to count days overdue
+                    document.querySelector('#days-until-next-release-due .label').innerHTML = "days overdue<br />to release";
                     break;
-                  case (daysSinceRelease >= 0):
-                    daysSinceReleaseCounter.parentElement.classList.add("green");
+                  case (daysUntilNextReleaseDue >= 0):
+                    daysUntilNextReleaseDueCounter.parentElement.classList.add("green");
+                    daysUntilNextReleaseDueCounter.innerHTML = daysUntilNextReleaseDue;
+                    document.querySelector('#days-until-next-release-due .label').innerHTML = "days until<br />release is due";
                     break;
                   default:
                     break;
@@ -174,9 +181,9 @@
         <span class="count">!</span>
         <span class="label">calls arranged<br />next week</span>
       </div>
-      <div id="days-since-last-release" class="big-number">
+      <div id="days-until-next-release-due" class="big-number">
         <span class="count">!</span>
-        <span class="label">days since<br />last release</span>
+        <span class="label">days until<br />release is due</span>
       </div>
       <div id="monthly-recurring-revenue" class="big-number">
         <span class="count">!</span>
