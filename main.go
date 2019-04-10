@@ -193,7 +193,8 @@ func getReleaseAnnouncementTimes(client *http.Client) ([]time.Time, error) {
 	announcementTimes := []time.Time{}
 	for _, item := range feed.Items {
 		if strings.Contains(item.Link, `/blog/release`) {
-			timestamp, err := time.Parse("2006-01-02T15:04:05Z07:00", item.Published)
+			// e.g. `<pubDate>Tue, 26 Mar 2019 00:00:00 +0000</pubDate>`
+			timestamp, err := time.Parse("Mon, 02 Jan 2006 15:04:05 +0000", item.Published)
 
 			if err != nil {
 				return nil, fmt.Errorf("failed to parse date for '%s': %v", item.Title, err)
